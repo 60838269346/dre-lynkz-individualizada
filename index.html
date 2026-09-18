@@ -405,22 +405,32 @@
             } else if (visaoAtiva === "MENSAL") {
                 let anoRef = anoAtivo !== "TODOS" ? anoAtivo : "2026";
                 titulo.innerText = `DRE Mensal - ${objC.nome} (${anoRef})`;
-                sub.innerText = `Visão detalhada mês a mês do exercício ${anoRef}`;
+                sub.innerText = `Visão detalhada mês a mês do exercício ${anoRef} com Análise Vertical (%)`;
 
                 let mesesNum = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
                 let thHtml = '<th class="py-3 px-4 min-w-[280px] coluna-fixa bg-slate-100">Estrutura DRE</th>';
                 mesesNum.forEach(m => {
                     let sigla = nomesMeses[m].substring(0, 3);
-                    thHtml += `<th class="py-3 px-2 text-right border-l border-slate-300 font-bold bg-slate-100">${sigla}</th>`;
+                    thHtml += `<th class="py-3 px-2 text-right border-l border-slate-300 font-bold bg-slate-100" colspan="2">${sigla}</th>`;
                 });
-                thHtml += `<th class="py-3 px-3 text-right border-l-2 border-slate-400 font-bold bg-slate-200">TOTAL</th>`;
+                thHtml += `<th class="py-3 px-3 text-right border-l-2 border-slate-400 font-bold bg-slate-200" colspan="2">TOTAL</th>`;
                 thead.innerHTML = thHtml;
+
+                let thead2 = document.createElement('tr');
+                thead2.className = 'bg-slate-50 text-slate-500 font-medium border-b border-slate-200 text-[10px]';
+                let thHtml2 = '<th class="px-4 py-1.5 coluna-fixa bg-slate-50">Conta</th>';
+                mesesNum.forEach(() => {
+                    thHtml2 += '<th class="py-1.5 px-1 text-right border-l border-slate-200">R$</th><th class="py-1.5 px-1 text-right">A.V.</th>';
+                });
+                thHtml2 += '<th class="py-1.5 px-2 text-right border-l-2 border-slate-300 bg-slate-100">R$ Total</th><th class="py-1.5 px-1 text-right bg-slate-100">A.V.</th>';
+                thead2.innerHTML = thHtml2;
+                thead.insertAdjacentElement('afterend', thead2);
 
                 let dadosMeses = {};
                 mesesNum.forEach(m => { dadosMeses[m] = calcularDREPeriodo(canalAtivo, anoRef, m); });
                 let dadosTotalAno = calcularDREPeriodo(canalAtivo, anoRef, null);
 
-                function addLinhaMensal(nome, sel, header=false, subtotal=false, inv=false) {
+                function addLinhaMensalAV(nome, sel, header=false, subtotal=false, inv=false) {
                     let tr = document.createElement('tr');
                     tr.className = header ? 'bg-slate-100 font-bold text-slate-900' : (subtotal ? 'bg-slate-50 font-semibold text-slate-800 border-t border-b border-slate-200' : 'hover:bg-slate-50/80');
                     let html = `<td class="px-4 py-2.5 coluna-fixa">${nome}</td>`;
@@ -428,19 +438,26 @@
                     mesesNum.forEach(m => {
                         let d = dadosMeses[m];
                         let val = sel(d);
+                        let base = d.receita_liquida !== 0 ? d.receita_liquida : 1;
+                        let av = (val / base) * 100;
                         let valEx = inv && val > 0 ? -val : val;
-                        html += `<td class="py-2.5 px-2 text-right border-l border-slate-200">${formatarMoeda(valEx, header || subtotal)}</td>`;
+                        html += `<td class="py-2.5 px-1 text-right border-l border-slate-200">${formatarMoeda(valEx, header || subtotal)}</td>
+                                 <td class="py-2.5 px-1 text-right text-slate-500">${formatarPorcentagem(av, header || subtotal)}</td>`;
                     });
 
                     let valTot = sel(dadosTotalAno);
+                    let baseTot = dadosTotalAno.receita_liquida !== 0 ? dadosTotalAno.receita_liquida : 1;
+                    let avTot = (valTot / baseTot) * 100;
                     let valTotEx = inv && valTot > 0 ? -valTot : valTot;
-                    html += `<td class="py-2.5 px-3 text-right border-l-2 border-slate-300 bg-slate-50">${formatarMoeda(valTotEx, true)}</td>`;
+                    
+                    html += `<td class="py-2.5 px-2 text-right border-l-2 border-slate-300 bg-slate-50">${formatarMoeda(valTotEx, true)}</td>
+                             <td class="py-2.5 px-1 text-right text-slate-500 bg-slate-50">${formatarPorcentagem(avTot, true)}</td>`;
 
                     tr.innerHTML = html;
                     tbody.appendChild(tr);
                 }
 
-                popularEstruturaTabela(addLinhaMensal);
+                popularEstruturaTabela(addLinhaMensalAV);
 
             } else if (anoAtivo !== "TODOS") {
                 titulo.innerText = `DRE Detalhada - ${objC.nome} (${anoAtivo})`;
