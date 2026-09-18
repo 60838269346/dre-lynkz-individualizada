@@ -93,7 +93,7 @@
             </div>
             <div class="overflow-x-auto">
                 <table id="tabela-dre" class="w-full text-left border-collapse text-xs">
-                    <thead>
+                    <thead id="tabela-head-container">
                         <tr id="dre-thead" class="bg-slate-100/70 text-slate-700 font-semibold border-b border-slate-200"></tr>
                     </thead>
                     <tbody id="dre-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
@@ -400,7 +400,12 @@
 
         function processarEAtualizarDRE() {
             const objC = canais.find(c => c.id === canalAtivo) || canais[0];
+            const theadContainer = document.getElementById('tabela-head-container');
+            
+            // Limpa o thead mantendo apenas a estrutura base limpa
+            theadContainer.innerHTML = '<tr id="dre-thead" class="bg-slate-100/70 text-slate-700 font-semibold border-b border-slate-200"></tr>';
             const thead = document.getElementById('dre-thead');
+            
             const tbody = document.getElementById('dre-tbody');
             tbody.innerHTML = '';
             
@@ -467,13 +472,13 @@
 
                 let thead2 = document.createElement('tr');
                 thead2.className = 'bg-slate-50 text-slate-500 font-medium border-b border-slate-200 text-[10px]';
-                let thHtml2 = '<th class="px-4 py-1.5 coluna-fixa bg-slate-50">Conta</th>';
+                let thHtml2 = '<th class="px-4 py-1.5 coluna-fixa bg-slate-50"></th>';
                 mesesNum.forEach(() => {
                     thHtml2 += '<th class="py-1.5 px-1 text-right border-l border-slate-200">R$</th><th class="py-1.5 px-1 text-right">A.V.</th>';
                 });
                 thHtml2 += '<th class="py-1.5 px-2 text-right border-l-2 border-slate-300 bg-slate-100">R$ Total</th><th class="py-1.5 px-1 text-right bg-slate-100">A.V.</th>';
                 thead2.innerHTML = thHtml2;
-                thead.insertAdjacentElement('afterend', thead2);
+                theadContainer.appendChild(thead2);
 
                 let dadosMeses = {};
                 mesesNum.forEach(m => { dadosMeses[m] = calcularDREPeriodo(canalAtivo, anoRef, m); });
