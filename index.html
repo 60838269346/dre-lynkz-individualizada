@@ -104,12 +104,12 @@
 
     <!-- Modal do Painel de Lançamentos -->
     <div id="admin-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden max-h-[90vh] flex flex-col">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full overflow-hidden max-h-[90vh] flex flex-col">
             <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
                 <h3 class="font-bold text-base"><i class="fa-solid fa-pen-to-square mr-2"></i> Painel de Lançamentos - Lynkz</h3>
                 <button onclick="toggleModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
             </div>
-            <div class="p-6 space-y-4 overflow-y-auto flex-1">
+            <div class="p-6 space-y-5 overflow-y-auto flex-1">
                 <input type="hidden" id="lanc-index" value="-1">
                 
                 <!-- Formulário -->
@@ -190,12 +190,61 @@
                     </div>
                 </div>
 
-                <!-- Lista de Lançamentos Recentes -->
+                <!-- Lista de Lançamentos com Filtros Internos -->
                 <div class="space-y-3">
-                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                    <div class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 pb-2 gap-2">
                         <h4 class="text-xs font-bold text-slate-500 uppercase">Lançamentos Cadastrados</h4>
-                        <button onclick="limparTudo()" class="text-xs text-red-600 hover:text-red-800 font-semibold bg-red-50 px-2.5 py-1.5 rounded-lg transition">Limpar Tudo</button>
+                        <div class="flex items-center gap-2">
+                            <button onclick="limparTudo()" class="text-xs text-red-600 hover:text-red-800 font-semibold bg-red-50 px-2 py-1 rounded transition">Limpar Tudo</button>
+                        </div>
                     </div>
+
+                    <!-- Barra de Filtros da Lista -->
+                    <div class="bg-slate-100 p-3 rounded-xl grid grid-cols-1 sm:grid-cols-4 gap-2 items-end">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filtrar Ano</label>
+                            <select id="filtro-lista-ano" onchange="renderizarListaLancamentos()" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white">
+                                <option value="TODOS">Todos os Anos</option>
+                                <option value="2026">2026</option>
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filtrar Canal</label>
+                            <select id="filtro-lista-canal" onchange="renderizarListaLancamentos()" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white">
+                                <option value="TODOS">Todos os Canais</option>
+                                <option value="LYNKZ_ANDREAZZA">Lynkz Andreazza</option>
+                                <option value="LYNKZ_ITZ">Lynkz ITZ</option>
+                                <option value="LYNKZ_EXTERNO">Lynkz Externo</option>
+                                <option value="LYNKZ_PARA">Lynkz Pará</option>
+                                <option value="LYNKZ_TOCANTINS">Lynkz Tocantins</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Filtrar Mês</label>
+                            <select id="filtro-lista-mes" onchange="renderizarListaLancamentos()" class="w-full border border-slate-300 rounded-lg p-1.5 text-xs bg-white">
+                                <option value="TODOS">Todos os Meses</option>
+                                <option value="1">Janeiro</option>
+                                <option value="2">Fevereiro</option>
+                                <option value="3">Março</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Maio</option>
+                                <option value="6">Junho</option>
+                                <option value="7">Julho</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Setembro</option>
+                                <option value="10">Outubro</option>
+                                <option value="11">Novembro</option>
+                                <option value="12">Dezembro</option>
+                            </select>
+                        </div>
+                        <div>
+                            <button onclick="resetarFiltrosLista()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 py-1.5 px-2 rounded-lg text-xs font-medium transition">Limpar Filtros</button>
+                        </div>
+                    </div>
+
                     <div id="lista-lancamentos" class="max-h-48 overflow-y-auto space-y-1.5 text-xs text-slate-600"></div>
                 </div>
             </div>
@@ -549,7 +598,7 @@
             if (senha === "0") {
                 document.getElementById('admin-modal').classList.remove('hidden');
                 limparFormulario();
-                renderizarListaLancamentos();
+                resetarFiltrosLista();
             } else if (senha !== null) {
                 alert("Senha incorreta!");
             }
@@ -603,13 +652,25 @@
         function renderizarListaLancamentos() {
             const container = document.getElementById('lista-lancamentos');
             container.innerHTML = '';
-            if (lancamentos.length === 0) {
-                container.innerHTML = '<p class="text-slate-400 py-2">Nenhum lançamento cadastrado.</p>';
+
+            let fAno = document.getElementById('filtro-lista-ano').value;
+            let fCanal = document.getElementById('filtro-lista-canal').value;
+            let fMes = document.getElementById('filtro-lista-mes').value;
+
+            let filtrados = lancamentos.map((l, idxOriginal) => ({ ...l, idxOriginal })).filter(l => {
+                if (fAno !== "TODOS" && l.ano !== fAno) return false;
+                if (fCanal !== "TODOS" && l.canal !== fCanal) return false;
+                if (fMes !== "TODOS" && String(l.mes || 1) !== fMes) return false;
+                return true;
+            });
+
+            if (filtrados.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 py-2 text-center">Nenhum lançamento encontrado com estes filtros.</p>';
                 return;
             }
 
-            lancamentos.slice().reverse().forEach((l, iReal) => {
-                let idx = lancamentos.length - 1 - iReal;
+            filtrados.slice().reverse().forEach((l) => {
+                let idx = l.idxOriginal;
                 let canalObj = canais.find(c => c.id === l.canal);
                 let nomeMes = nomesMeses[l.mes || 1];
                 let div = document.createElement('div');
@@ -621,13 +682,20 @@
                         <span class="font-semibold text-slate-800">R$ ${l.valor.toFixed(2)}</span>
                         <div class="text-[10px] text-slate-400">${l.desc}</div>
                     </div>
-                    <div class="flex space-x-1">
+                    <div class="flex space-x-1 shrink-0">
                         <button onclick="editarLancamento(${idx})" class="p-1.5 bg-blue-50 text-blue-600 rounded"><i class="fa-solid fa-pen"></i></button>
                         <button onclick="excluirLancamento(${idx})" class="p-1.5 bg-red-50 text-red-600 rounded"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 `;
                 container.appendChild(div);
             });
+        }
+
+        function resetarFiltrosLista() {
+            document.getElementById('filtro-lista-ano').value = "TODOS";
+            document.getElementById('filtro-lista-canal').value = "TODOS";
+            document.getElementById('filtro-lista-mes').value = "TODOS";
+            renderizarListaLancamentos();
         }
 
         function editarLancamento(idx) {
