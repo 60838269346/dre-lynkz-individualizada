@@ -31,7 +31,7 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight">Lynkz | DRE Individualizada</h1>
-                    <p class="text-xs text-slate-400">Gestão Comparativa e Análise por Canal</p>
+                    <p class="text-xs text-slate-400">Gestão Comparativa, Mensal e Análise por Canal</p>
                 </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
@@ -54,20 +54,29 @@
     <!-- Conteúdo Principal -->
     <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
         <!-- Filtros Superiores -->
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
             <div>
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Selecione o Canal</h3>
                 <div id="canais-botoes" class="flex flex-wrap gap-2"></div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Exercício (Ano / Visão)</label>
-                <select id="filtro-ano" onchange="atualizarFiltroAno()" class="border border-slate-300 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
-                    <option value="TODOS">📊 Visão Ano a Ano (Todos)</option>
-                    <option value="2026">2026</option>
-                    <option value="2025">2025</option>
-                    <option value="2024">2024</option>
-                    <option value="2023">2023</option>
-                </select>
+            <div class="flex flex-wrap gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Exercício (Ano)</label>
+                    <select id="filtro-ano" onchange="atualizarFiltros()" class="border border-slate-300 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        <option value="TODOS">📊 Visão Ano a Ano (Todos)</option>
+                        <option value="2026">2026</option>
+                        <option value="2025">2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Visão Período</label>
+                    <select id="filtro-visao" onchange="atualizarFiltros()" class="border border-slate-300 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                        <option value="ANUAL">📅 Visão Anual (Acumulado)</option>
+                        <option value="MENSAL">📆 Visão Mensal (Meses do Ano)</option>
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -106,7 +115,7 @@
                 <!-- Formulário -->
                 <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                     <h4 id="form-titulo" class="text-xs font-bold text-slate-700 uppercase tracking-wide">Novo Lançamento</h4>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-3 gap-3">
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ano</label>
                             <select id="lanc-ano" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500">
@@ -114,6 +123,23 @@
                                 <option value="2025">2025</option>
                                 <option value="2024">2024</option>
                                 <option value="2023">2023</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Mês</label>
+                            <select id="lanc-mes" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500">
+                                <option value="1">Janeiro</option>
+                                <option value="2">Fevereiro</option>
+                                <option value="3">Março</option>
+                                <option value="4">Abril</option>
+                                <option value="5">Maio</option>
+                                <option value="6">Junho</option>
+                                <option value="7">Julho</option>
+                                <option value="8">Agosto</option>
+                                <option value="9">Setembro</option>
+                                <option value="10">Outubro</option>
+                                <option value="11">Novembro</option>
+                                <option value="12">Dezembro</option>
                             </select>
                         </div>
                         <div>
@@ -194,8 +220,11 @@
             { id: "CONSOLIDADO_LADO_A_LADO", nome: "📊 CONSOLIDADO LADO A LADO" }
         ];
 
+        const nomesMeses = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
         let canalAtivo = "LYNKZ_ANDREAZZA";
         let anoAtivo = "TODOS";
+        let visaoAtiva = "ANUAL"; // ANUAL ou MENSAL
         let listaAnos = ["2023", "2024", "2025", "2026"];
         let lancamentos = [];
 
@@ -213,7 +242,10 @@
                 if (res.ok) {
                     let data = await res.json();
                     if (data.record && Array.isArray(data.record.lancamentos)) {
-                        lancamentos = data.record.lancamentos;
+                        lancamentos = data.record.lancamentos.map(l => ({
+                            ...l,
+                            mes: l.mes ? Number(l.mes) : 1
+                        }));
                     }
                 }
             } catch (e) {
@@ -253,8 +285,9 @@
             });
         }
 
-        function atualizarFiltroAno() {
+        function atualizarFiltros() {
             anoAtivo = document.getElementById('filtro-ano').value;
+            visaoAtiva = document.getElementById('filtro-visao').value;
             processarEAtualizarDRE();
         }
 
@@ -270,14 +303,14 @@
             return totalizador ? `<span class="font-bold">${fmt}</span>` : fmt;
         }
 
-        function calcularDREPeriodo(canalId, ano) {
+        function calcularDREPeriodo(canalId, ano, mes = null) {
             let filtrados = [];
             const canaisOficiais = ["LYNKZ_ANDREAZZA", "LYNKZ_ITZ", "LYNKZ_EXTERNO", "LYNKZ_PARA", "LYNKZ_TOCANTINS"];
             
             if (canalId === "CONSOLIDADO") {
-                filtrados = lancamentos.filter(l => l.ano === ano && canaisOficiais.includes(l.canal));
+                filtrados = lancamentos.filter(l => l.ano === ano && (mes === null || l.mes === mes) && canaisOficiais.includes(l.canal));
             } else {
-                filtrados = lancamentos.filter(l => l.canal === canalId && l.ano === ano);
+                filtrados = lancamentos.filter(l => l.canal === canalId && l.ano === ano && (mes === null || l.mes === mes));
             }
 
             let d = {
@@ -328,7 +361,7 @@
             if (canalAtivo === "CONSOLIDADO_LADO_A_LADO") {
                 let anoRef = anoAtivo !== "TODOS" ? anoAtivo : "2026";
                 titulo.innerText = `DRE Consolidada Lado a Lado (${anoRef})`;
-                sub.innerText = `Comparativo entre todos os canais Lynkz no exercício ${anoRef}`;
+                sub.innerText = `Comparativo entre todos os canais Lynkz no exercício ${anoRef} (Visão Anual)`;
                 
                 let thHtml = '<th class="py-3 px-4 min-w-[260px] coluna-fixa bg-slate-100">Estrutura DRE</th>';
                 const comparacao = ["LYNKZ_ANDREAZZA", "LYNKZ_ITZ", "LYNKZ_EXTERNO", "LYNKZ_PARA", "LYNKZ_TOCANTINS", "CONSOLIDADO"];
@@ -348,7 +381,7 @@
                 thead.innerHTML = thHtml;
 
                 let dadosMap = {};
-                comparacao.forEach(id => { dadosMap[id] = calcularDREPeriodo(id, anoRef); });
+                comparacao.forEach(id => { dadosMap[id] = calcularDREPeriodo(id, anoRef, null); });
 
                 function addLinhaLL(nome, sel, header=false, subtotal=false, inv=false) {
                     let tr = document.createElement('tr');
@@ -369,6 +402,46 @@
 
                 popularEstruturaTabela(addLinhaLL);
 
+            } else if (visaoAtiva === "MENSAL") {
+                let anoRef = anoAtivo !== "TODOS" ? anoAtivo : "2026";
+                titulo.innerText = `DRE Mensal - ${objC.nome} (${anoRef})`;
+                sub.innerText = `Visão detalhada mês a mês do exercício ${anoRef}`;
+
+                let mesesNum = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+                let thHtml = '<th class="py-3 px-4 min-w-[280px] coluna-fixa bg-slate-100">Estrutura DRE</th>';
+                mesesNum.forEach(m => {
+                    let sigla = nomesMeses[m].substring(0, 3);
+                    thHtml += `<th class="py-3 px-2 text-right border-l border-slate-300 font-bold bg-slate-100">${sigla}</th>`;
+                });
+                thHtml += `<th class="py-3 px-3 text-right border-l-2 border-slate-400 font-bold bg-slate-200">TOTAL</th>`;
+                thead.innerHTML = thHtml;
+
+                let dadosMeses = {};
+                mesesNum.forEach(m => { dadosMeses[m] = calcularDREPeriodo(canalAtivo, anoRef, m); });
+                let dadosTotalAno = calcularDREPeriodo(canalAtivo, anoRef, null);
+
+                function addLinhaMensal(nome, sel, header=false, subtotal=false, inv=false) {
+                    let tr = document.createElement('tr');
+                    tr.className = header ? 'bg-slate-100 font-bold text-slate-900' : (subtotal ? 'bg-slate-50 font-semibold text-slate-800 border-t border-b border-slate-200' : 'hover:bg-slate-50/80');
+                    let html = `<td class="px-4 py-2.5 coluna-fixa">${nome}</td>`;
+                    
+                    mesesNum.forEach(m => {
+                        let d = dadosMeses[m];
+                        let val = sel(d);
+                        let valEx = inv && val > 0 ? -val : val;
+                        html += `<td class="py-2.5 px-2 text-right border-l border-slate-200">${formatarMoeda(valEx, header || subtotal)}</td>`;
+                    });
+
+                    let valTot = sel(dadosTotalAno);
+                    let valTotEx = inv && valTot > 0 ? -valTot : valTot;
+                    html += `<td class="py-2.5 px-3 text-right border-l-2 border-slate-300 bg-slate-50">${formatarMoeda(valTotEx, true)}</td>`;
+
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                }
+
+                popularEstruturaTabela(addLinhaMensal);
+
             } else if (anoAtivo !== "TODOS") {
                 titulo.innerText = `DRE Detalhada - ${objC.nome} (${anoAtivo})`;
                 sub.innerText = `Visão individualizada do exercício ${anoAtivo}`;
@@ -378,7 +451,7 @@
                     <th class="py-3 px-4 text-right bg-slate-100">A.V. (%)</th>
                 `;
 
-                let d = calcularDREPeriodo(canalAtivo, anoAtivo);
+                let d = calcularDREPeriodo(canalAtivo, anoAtivo, null);
                 let base = d.receita_liquida !== 0 ? d.receita_liquida : 1;
 
                 function addLinhaUnica(nome, sel, header=false, subtotal=false, inv=false) {
@@ -409,7 +482,7 @@
                 thead.innerHTML = thHtml;
 
                 let dadosAnos = {};
-                listaAnos.forEach(ano => { dadosAnos[ano] = calcularDREPeriodo(canalAtivo, ano); });
+                listaAnos.forEach(ano => { dadosAnos[ano] = calcularDREPeriodo(canalAtivo, ano, null); });
 
                 function addLinhaAnoAno(nome, sel, header=false, subtotal=false, inv=false) {
                     let tr = document.createElement('tr');
@@ -475,6 +548,7 @@
             document.getElementById('btn-cancelar').classList.add('hidden');
             document.getElementById('lanc-valor').value = "";
             document.getElementById('lanc-desc').value = "";
+            document.getElementById('lanc-mes').value = "1";
             if (canalAtivo !== "CONSOLIDADO" && canalAtivo !== "CONSOLIDADO_LADO_A_LADO") {
                 document.getElementById('lanc-canal').value = canalAtivo;
             }
@@ -482,6 +556,7 @@
 
         async function salvarLancamento() {
             let ano = document.getElementById('lanc-ano').value;
+            let mes = parseInt(document.getElementById('lanc-mes').value);
             let canal = document.getElementById('lanc-canal').value;
             let tipo = document.getElementById('lanc-tipo').value;
             let valStr = document.getElementById('lanc-valor').value.trim().replace(',', '.');
@@ -494,7 +569,7 @@
                 return;
             }
 
-            let obj = { canal, tipo, valor, desc, ano };
+            let obj = { canal, tipo, valor, desc, ano, mes };
             if (idx >= 0) {
                 lancamentos[idx] = obj;
             } else {
@@ -519,11 +594,12 @@
             lancamentos.slice().reverse().forEach((l, iReal) => {
                 let idx = lancamentos.length - 1 - iReal;
                 let canalObj = canais.find(c => c.id === l.canal);
+                let nomeMes = nomesMeses[l.mes || 1];
                 let div = document.createElement('div');
                 div.className = 'flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 gap-2';
                 div.innerHTML = `
                     <div>
-                        <span class="bg-slate-100 px-1.5 py-0.5 rounded font-bold">Ano: ${l.ano}</span>
+                        <span class="bg-slate-100 px-1.5 py-0.5 rounded font-bold">${nomeMes}/${l.ano}</span>
                         <strong>${canalObj?.nome || l.canal}</strong> - <span class="text-slate-500">${l.tipo}</span>: 
                         <span class="font-semibold text-slate-800">R$ ${l.valor.toFixed(2)}</span>
                         <div class="text-[10px] text-slate-400">${l.desc}</div>
@@ -544,6 +620,7 @@
             document.getElementById('form-titulo').innerText = `Editando Lançamento (#${idx})`;
             document.getElementById('btn-cancelar').classList.remove('hidden');
             document.getElementById('lanc-ano').value = l.ano;
+            document.getElementById('lanc-mes').value = l.mes || 1;
             document.getElementById('lanc-canal').value = l.canal;
             document.getElementById('lanc-tipo').value = l.tipo;
             document.getElementById('lanc-valor').value = l.valor;
@@ -577,14 +654,14 @@
         function exportarExcel() {
             let tabela = document.getElementById("tabela-dre");
             let wb = XLSX.utils.table_to_book(tabela, { sheet: "DRE Lynkz" });
-            XLSX.writeFile(wb, `DRE_Lynkz_${canalAtivo}_${anoAtivo}.xlsx`);
+            XLSX.writeFile(wb, `DRE_Lynkz_${canalAtivo}_${anoAtivo}_${visaoAtiva}.xlsx`);
         }
 
         function exportarPDF() {
             const elemento = document.getElementById("dre-container-export");
             const opt = {
                 margin: 10,
-                filename: `DRE_Lynkz_${canalAtivo}_${anoAtivo}.pdf`,
+                filename: `DRE_Lynkz_${canalAtivo}_${anoAtivo}_${visaoAtiva}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
@@ -594,3 +671,5 @@
     </script>
 </body>
 </html>
+
+  
