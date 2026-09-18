@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRE Individualizada - Lynkz</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome para Ícones -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <style>
+        .coluna-fixa {
+            position: sticky;
+            left: 0;
+            z-index: 20;
+            background-color: #ffffff;
+        }
+        tr.bg-slate-100 .coluna-fixa { background-color: #f1f5f9; }
+        tr.bg-slate-50 .coluna-fixa { background-color: #f8fafc; }
+        tr:hover .coluna-fixa { background-color: #f8fafc; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans" onload="inicializarSistema()">
+
+    <!-- Cabeçalho -->
+    <header class="bg-slate-900 text-white shadow-md">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-emerald-600 p-2.5 rounded-lg text-white">
+                    <i class="fa-solid fa-chart-line text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">Lynkz | DRE Individualizada</h1>
+                    <p class="text-xs text-slate-400">Gestão Comparativa e Análise por Canal</p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <button onclick="exportarExcel()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-excel text-emerald-400"></i>
+                    <span>Baixar Excel</span>
+                </button>
+                <button onclick="exportarPDF()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-xs font-medium transition shadow-sm flex items-center space-x-1.5">
+                    <i class="fa-solid fa-file-pdf text-red-400"></i>
+                    <span>Baixar PDF</span>
+                </button>
+                <button onclick="tentarAbrirAdmin()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition shadow-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-plus-circle"></i>
+                    <span>Painel de Lançamentos</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-6">
+        <!-- Filtros Superiores -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Selecione o Canal</h3>
+                <div id="canais-botoes" class="flex flex-wrap gap-2"></div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Exercício (Ano / Visão)</label>
+                <select id="filtro-ano" onchange="atualizarFiltroAno()" class="border border-slate-300 rounded-lg p-2 text-xs font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white">
+                    <option value="TODOS">📊 Visão Ano a Ano (Todos)</option>
+                    <option value="2026">2026</option>
+                    <option value="2025">2025</option>
+                    <option value="2024">2024</option>
+                    <option value="2023">2023</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Tabela DRE -->
+        <div id="dre-container-export" class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-50/50 gap-2">
+                <div>
+                    <h2 id="titulo-dre" class="font-bold text-slate-800 text-base">DRE - Canal</h2>
+                    <p id="subtitulo-dre" class="text-xs text-slate-500">Demonstração do Resultado com Análise Vertical (%)</p>
+                </div>
+                <div id="badge-av" class="text-xs bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full font-semibold border border-emerald-200">
+                    Base A.V.: Receita Líquida (100%)
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table id="tabela-dre" class="w-full text-left border-collapse text-xs">
+                    <thead>
+                        <tr id="dre-thead" class="bg-slate-100/70 text-slate-700 font-semibold border-b border-slate-200"></tr>
+                    </thead>
+                    <tbody id="dre-tbody" class="divide-y divide-slate-100 text-slate-700"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal do Painel de Lançamentos -->
+    <div id="admin-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-2xl shadow-xl max-w-2xl w-full overflow-hidden max-h-[90vh] flex flex-col">
+            <div class="px-6 py-4 bg-slate-900 text-white flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-base"><i class="fa-solid fa-pen-to-square mr-2"></i> Painel de Lançamentos - Lynkz</h3>
+                <button onclick="toggleModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 space-y-4 overflow-y-auto flex-1">
+                <input type="hidden" id="lanc-index" value="-1">
+                
+                <!-- Formulário -->
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                    <h4 id="form-titulo" class="text-xs font-bold text-slate-700 uppercase tracking-wide">Novo Lançamento</h4>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Ano</label>
+                            <select id="lanc-ano" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500">
+                                <option value="2026">2026</option>
+                                <option value="2025">2025</option>
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Canal</label>
+                            <select id="lanc-canal" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500">
+                                <option value="LYNKZ_ANDREAZZA">Lynkz Andreazza</option>
+                                <option value="LYNKZ_ITZ">Lynkz ITZ</option>
+                                <option value="LYNKZ_EXTERNO">Lynkz Externo</option>
+                                <option value="LYNKZ_PARA">Lynkz Pará</option>
+                                <option value="LYNKZ_TOCANTINS">Lynkz Tocantins</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Conta DRE</label>
+                            <select id="lanc-tipo" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500">
+                                <option value="receita_bruta">(+) Receita Bruta</option>
+                                <option value="devolucoes">(-) Devoluções</option>
+                                <option value="impostos">(-) Impostos s/vendas</option>
+                                <option value="cmv">(-) Custo de Mercadorias Vendidas</option>
+                                <option value="verbas_comerciais">(+) Verbas Comerciais</option>
+                                <option value="comissoes">(-) Comissões sobre Vendas</option>
+                                <option value="pessoal_direto">(-) Gasto com Pessoal - Direto</option>
+                                <option value="despesas_comerciais">(-) Despesas Comerciais</option>
+                                <option value="despesas_distribuicao">(-) Despesas com Distribuição</option>
+                                <option value="despesas_administrativas">(-) Despesas Administrativas</option>
+                                <option value="despesas_tributarias">(-) Despesas Tributárias</option>
+                                <option value="aluguel">(-) Aluguel</option>
+                                <option value="pessoal_indireto">(-) Gasto com Pessoal Indireto</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Valor (R$)</label>
+                            <input type="text" id="lanc-valor" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500" placeholder="0.00">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Histórico / Descrição</label>
+                        <input type="text" id="lanc-desc" class="w-full border border-slate-300 rounded-lg p-2 text-sm bg-white focus:ring-2 focus:ring-emerald-500" placeholder="Ex: Faturamento referente ao período...">
+                    </div>
+
+                    <div class="flex justify-end space-x-2 pt-1">
+                        <button id="btn-cancelar" onclick="limparFormulario()" class="hidden px-3 py-1.5 border border-slate-300 text-slate-600 rounded-lg text-xs font-medium hover:bg-slate-100">Cancelar</button>
+                        <button onclick="salvarLancamento()" class="px-4 py-2 bg-emerald-600 text-white rounded-lg text-xs font-medium hover:bg-emerald-700 shadow-sm">Salvar Lançamento</button>
+                    </div>
+                </div>
+
+                <!-- Lista de Lançamentos Recentes -->
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <h4 class="text-xs font-bold text-slate-500 uppercase">Lançamentos Cadastrados</h4>
+                        <button onclick="limparTudo()" class="text-xs text-red-600 hover:text-red-800 font-semibold bg-red-50 px-2.5 py-1.5 rounded-lg transition">Limpar Tudo</button>
+                    </div>
+                    <div id="lista-lancamentos" class="max-h-48 overflow-y-auto space-y-1.5 text-xs text-slate-600"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bibliotecas Exportação Excel / PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        const BIN_ID = "6aad7bfeffd5d1605316e8b1";
+        const API_KEY = "$2a$10$2gRuysiXM85zMZ4OTG2dU.AEaN0WyPHJveZ2wy62/tqidY73EOJBS";
+
+        const canais = [
+            { id: "LYNKZ_ANDREAZZA", nome: "Lynkz Andreazza" },
+            { id: "LYNKZ_ITZ", nome: "Lynkz ITZ" },
+            { id: "LYNKZ_EXTERNO", nome: "Lynkz Externo" },
+            { id: "LYNKZ_PARA", nome: "Lynkz Pará" },
+            { id: "LYNKZ_TOCANTINS", nome: "Lynkz Tocantins" },
+            { id: "CONSOLIDADO", nome: "CONSOLIDADO (TOTAL)" },
+            { id: "CONSOLIDADO_LADO_A_LADO", nome: "📊 CONSOLIDADO LADO A LADO" }
+        ];
+
+        let canalAtivo = "LYNKZ_ANDREAZZA";
+        let anoAtivo = "TODOS";
+        let listaAnos = ["2023", "2024", "2025", "2026"];
+        let lancamentos = [];
+
+        async function inicializarSistema() {
+            await carregarDados();
+            renderizarBotoes();
+            processarEAtualizarDRE();
+        }
+
+        async function carregarDados() {
+            try {
+                let res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+                    headers: { 'X-Master-Key': API_KEY }
+                });
+                if (res.ok) {
+                    let data = await res.json();
+                    if (data.record && Array.isArray(data.record.lancamentos)) {
+                        lancamentos = data.record.lancamentos;
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao carregar dados da nuvem.", e);
+            }
+        }
+
+        async function salvarDados() {
+            try {
+                await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Master-Key': API_KEY
+                    },
+                    body: JSON.stringify({ lancamentos })
+                });
+            } catch (e) {
+                console.error("Erro ao salvar dados.", e);
+            }
+        }
+
+        function renderizarBotoes() {
+            const container = document.getElementById('canais-botoes');
+            container.innerHTML = '';
+            canais.forEach(c => {
+                let ativo = c.id === canalAtivo;
+                let btn = document.createElement('button');
+                btn.className = `px-3.5 py-2 rounded-lg text-xs font-bold transition shadow-sm ${ativo ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`;
+                btn.innerText = c.nome;
+                btn.onclick = () => {
+                    canalAtivo = c.id;
+                    renderizarBotoes();
+                    processarEAtualizarDRE();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function atualizarFiltroAno() {
+            anoAtivo = document.getElementById('filtro-ano').value;
+            processarEAtualizarDRE();
+        }
+
+        function formatarMoeda(val, totalizador = false) {
+            let abs = Math.abs(val);
+            let fmt = abs.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            let texto = val < 0 ? `(${fmt})` : fmt;
+            return totalizador ? `<span class="font-bold">${texto}</span>` : `<span class="font-medium">${texto}</span>`;
+        }
+
+        function formatarPorcentagem(val, totalizador = false) {
+            let fmt = val.toFixed(2).replace('.', ',') + '%';
+            return totalizador ? `<span class="font-bold">${fmt}</span>` : fmt;
+        }
+
+        function calcularDREPeriodo(canalId, ano) {
+            let filtrados = [];
+            const canaisOficiais = ["LYNKZ_ANDREAZZA", "LYNKZ_ITZ", "LYNKZ_EXTERNO", "LYNKZ_PARA", "LYNKZ_TOCANTINS"];
+            
+            if (canalId === "CONSOLIDADO") {
+                filtrados = lancamentos.filter(l => l.ano === ano && canaisOficiais.includes(l.canal));
+            } else {
+                filtrados = lancamentos.filter(l => l.canal === canalId && l.ano === ano);
+            }
+
+            let d = {
+                receita_bruta: 0,
+                devolucoes: 0,
+                impostos: 0,
+                receita_liquida: 0,
+                cmv: 0,
+                lucro_bruto: 0,
+                verbas_comerciais: 0,
+                lucro_bruto_ajustado: 0,
+                comissoes: 0,
+                pessoal_direto: 0,
+                despesas_comerciais: 0,
+                despesas_distribuicao: 0,
+                despesas_administrativas: 0,
+                despesas_tributarias: 0,
+                aluguel: 0,
+                sga: 0,
+                ebitda_operacional: 0,
+                pessoal_indireto: 0,
+                ebitda_final: 0
+            };
+
+            filtrados.forEach(l => {
+                if (d[l.tipo] !== undefined) d[l.tipo] += Number(l.valor);
+            });
+
+            d.receita_liquida = d.receita_bruta - d.devolucoes - d.impostos;
+            d.lucro_bruto = d.receita_liquida - d.cmv;
+            d.lucro_bruto_ajustado = d.lucro_bruto + d.verbas_comerciais;
+            d.sga = d.comissoes + d.pessoal_direto + d.despesas_comerciais + d.despesas_distribuicao + d.despesas_administrativas + d.despesas_tributarias + d.aluguel;
+            d.ebitda_operacional = d.lucro_bruto_ajustado - d.sga;
+            d.ebitda_final = d.ebitda_operacional - d.pessoal_indireto;
+
+            return d;
+        }
+
+        function processarEAtualizarDRE() {
+            const objC = canais.find(c => c.id === canalAtivo) || canais[0];
+            const thead = document.getElementById('dre-thead');
+            const tbody = document.getElementById('dre-tbody');
+            tbody.innerHTML = '';
+            
+            const titulo = document.getElementById('titulo-dre');
+            const sub = document.getElementById('subtitulo-dre');
+
+            if (canalAtivo === "CONSOLIDADO_LADO_A_LADO") {
+                let anoRef = anoAtivo !== "TODOS" ? anoAtivo : "2026";
+                titulo.innerText = `DRE Consolidada Lado a Lado (${anoRef})`;
+                sub.innerText = `Comparativo entre todos os canais Lynkz no exercício ${anoRef}`;
+                
+                let thHtml = '<th class="py-3 px-4 min-w-[260px] coluna-fixa bg-slate-100">Estrutura DRE</th>';
+                const comparacao = ["LYNKZ_ANDREAZZA", "LYNKZ_ITZ", "LYNKZ_EXTERNO", "LYNKZ_PARA", "LYNKZ_TOCANTINS", "CONSOLIDADO"];
+                const rotulosCurtos = {
+                    "LYNKZ_ANDREAZZA": "Andreazza",
+                    "LYNKZ_ITZ": "ITZ",
+                    "LYNKZ_EXTERNO": "Externo",
+                    "LYNKZ_PARA": "Pará",
+                    "LYNKZ_TOCANTINS": "Tocantins",
+                    "CONSOLIDADO": "TOTAL GERAL"
+                };
+                
+                comparacao.forEach(id => {
+                    thHtml += `<th class="py-3 px-2 text-right border-l border-slate-300 font-bold bg-slate-100">${rotulosCurtos[id]}</th>`;
+                    thHtml += `<th class="py-3 px-2 text-right font-bold bg-slate-100">A.V.</th>`;
+                });
+                thead.innerHTML = thHtml;
+
+                let dadosMap = {};
+                comparacao.forEach(id => { dadosMap[id] = calcularDREPeriodo(id, anoRef); });
+
+                function addLinhaLL(nome, sel, header=false, subtotal=false, inv=false) {
+                    let tr = document.createElement('tr');
+                    tr.className = header ? 'bg-slate-100 font-bold text-slate-900' : (subtotal ? 'bg-slate-50 font-semibold text-slate-800 border-t border-b border-slate-200' : 'hover:bg-slate-50/80');
+                    let html = `<td class="px-4 py-2.5 coluna-fixa">${nome}</td>`;
+                    comparacao.forEach(id => {
+                        let d = dadosMap[id];
+                        let val = sel(d);
+                        let base = d.receita_liquida !== 0 ? d.receita_liquida : 1;
+                        let av = (val / base) * 100;
+                        let valEx = inv && val > 0 ? -val : val;
+                        html += `<td class="py-2.5 px-2 text-right border-l border-slate-200">${formatarMoeda(valEx, header || subtotal)}</td>
+                                 <td class="py-2.5 px-2 text-right text-slate-500">${formatarPorcentagem(av, header || subtotal)}</td>`;
+                    });
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                }
+
+                popularEstruturaTabela(addLinhaLL);
+
+            } else if (anoAtivo !== "TODOS") {
+                titulo.innerText = `DRE Detalhada - ${objC.nome} (${anoAtivo})`;
+                sub.innerText = `Visão individualizada do exercício ${anoAtivo}`;
+                thead.innerHTML = `
+                    <th class="py-3 px-4 min-w-[280px] coluna-fixa bg-slate-100">Estrutura DRE</th>
+                    <th class="py-3 px-4 text-right bg-slate-100">Valor Anual (${anoAtivo})</th>
+                    <th class="py-3 px-4 text-right bg-slate-100">A.V. (%)</th>
+                `;
+
+                let d = calcularDREPeriodo(canalAtivo, anoAtivo);
+                let base = d.receita_liquida !== 0 ? d.receita_liquida : 1;
+
+                function addLinhaUnica(nome, sel, header=false, subtotal=false, inv=false) {
+                    let tr = document.createElement('tr');
+                    tr.className = header ? 'bg-slate-100 font-bold text-slate-900' : (subtotal ? 'bg-slate-50 font-semibold text-slate-800 border-t border-b border-slate-200' : 'hover:bg-slate-50/80');
+                    let val = sel(d);
+                    let av = (val / base) * 100;
+                    let valEx = inv && val > 0 ? -val : val;
+                    tr.innerHTML = `
+                        <td class="px-4 py-2.5 coluna-fixa">${nome}</td>
+                        <td class="py-2.5 px-4 text-right">${formatarMoeda(valEx, header || subtotal)}</td>
+                        <td class="py-2.5 px-4 text-right text-slate-500">${formatarPorcentagem(av, header || subtotal)}</td>
+                    `;
+                    tbody.appendChild(tr);
+                }
+
+                popularEstruturaTabela(addLinhaUnica);
+
+            } else {
+                titulo.innerText = `DRE Detalhada - ${objC.nome} (Visão Ano a Ano)`;
+                sub.innerText = "Visão comparativa de múltiplos exercícios com Análise Vertical (%)";
+                
+                let thHtml = '<th class="py-3 px-4 min-w-[280px] coluna-fixa bg-slate-100">Estrutura DRE</th>';
+                listaAnos.forEach(ano => {
+                    thHtml += `<th class="py-3 px-2 text-right border-l border-slate-300 font-bold bg-slate-100">${ano}</th>`;
+                    thHtml += `<th class="py-3 px-2 text-right font-bold bg-slate-100">A.V.</th>`;
+                });
+                thead.innerHTML = thHtml;
+
+                let dadosAnos = {};
+                listaAnos.forEach(ano => { dadosAnos[ano] = calcularDREPeriodo(canalAtivo, ano); });
+
+                function addLinhaAnoAno(nome, sel, header=false, subtotal=false, inv=false) {
+                    let tr = document.createElement('tr');
+                    tr.className = header ? 'bg-slate-100 font-bold text-slate-900' : (subtotal ? 'bg-slate-50 font-semibold text-slate-800 border-t border-b border-slate-200' : 'hover:bg-slate-50/80');
+                    let html = `<td class="px-4 py-2.5 coluna-fixa">${nome}</td>`;
+                    listaAnos.forEach(ano => {
+                        let d = dadosAnos[ano];
+                        let val = sel(d);
+                        let base = d.receita_liquida !== 0 ? d.receita_liquida : 1;
+                        let av = (val / base) * 100;
+                        let valEx = inv && val > 0 ? -val : val;
+                        html += `<td class="py-2.5 px-2 text-right border-l border-slate-200">${formatarMoeda(valEx, header || subtotal)}</td>
+                                 <td class="py-2.5 px-2 text-right text-slate-500">${formatarPorcentagem(av, header || subtotal)}</td>`;
+                    });
+                    tr.innerHTML = html;
+                    tbody.appendChild(tr);
+                }
+
+                popularEstruturaTabela(addLinhaAnoAno);
+            }
+        }
+
+        function popularEstruturaTabela(fnAdd) {
+            fnAdd("(+) Receita Bruta", d => d.receita_bruta, true, false, false);
+            fnAdd("(-) Devoluções", d => d.devolucoes, false, false, true);
+            fnAdd("(-) Impostos s/vendas", d => d.impostos, false, false, true);
+            fnAdd("(=) Receita Liquida", d => d.receita_liquida, false, true, false);
+            fnAdd("(-) Custo de Mercadorias Vendidas", d => d.cmv, false, false, true);
+            fnAdd("(=) Lucro Bruto", d => d.lucro_bruto, false, true, false);
+            fnAdd("(+) Verbas Comerciais", d => d.verbas_comerciais, false, false, false);
+            fnAdd("(=) Lucro Bruto Ajustado", d => d.lucro_bruto_ajustado, false, true, false);
+            fnAdd("(=) SG&A", d => d.sga, true, true, true);
+            fnAdd("    (-) Comissões sobre Vendas", d => d.comissoes, false, false, true);
+            fnAdd("    (-) Gasto com Pessoal - Direto", d => d.pessoal_direto, false, false, true);
+            fnAdd("    (-) Despesas Comerciais", d => d.despesas_comerciais, false, false, true);
+            fnAdd("    (-) Despesas com Distribuição", d => d.despesas_distribuicao, false, false, true);
+            fnAdd("    (-) Despesas Administrativas", d => d.despesas_administrativas, false, false, true);
+            fnAdd("    (-) Despesas Tributárias", d => d.despesas_tributarias, false, false, true);
+            fnAdd("    (-) Aluguel", d => d.aluguel, false, false, true);
+            fnAdd("(=) Ebitda operacional", d => d.ebitda_operacional, false, true, false);
+            fnAdd("(-) Gasto com Pessoal Indireto", d => d.pessoal_indireto, false, false, true);
+            fnAdd("(=) Ebitda Final", d => d.ebitda_final, true, true, false);
+        }
+
+        function tentarAbrirAdmin() {
+            let senha = prompt("Digite a senha para acessar o painel de lançamentos:");
+            if (senha === "0") {
+                document.getElementById('admin-modal').classList.remove('hidden');
+                limparFormulario();
+                renderizarListaLancamentos();
+            } else if (senha !== null) {
+                alert("Senha incorreta!");
+            }
+        }
+
+        function toggleModal() {
+            document.getElementById('admin-modal').classList.toggle('hidden');
+        }
+
+        function limparFormulario() {
+            document.getElementById('lanc-index').value = "-1";
+            document.getElementById('form-titulo').innerText = "Novo Lançamento";
+            document.getElementById('btn-cancelar').classList.add('hidden');
+            document.getElementById('lanc-valor').value = "";
+            document.getElementById('lanc-desc').value = "";
+            if (canalAtivo !== "CONSOLIDADO" && canalAtivo !== "CONSOLIDADO_LADO_A_LADO") {
+                document.getElementById('lanc-canal').value = canalAtivo;
+            }
+        }
+
+        async function salvarLancamento() {
+            let ano = document.getElementById('lanc-ano').value;
+            let canal = document.getElementById('lanc-canal').value;
+            let tipo = document.getElementById('lanc-tipo').value;
+            let valStr = document.getElementById('lanc-valor').value.trim().replace(',', '.');
+            let valor = parseFloat(valStr);
+            let desc = document.getElementById('lanc-desc').value || "Lançamento DRE";
+            let idx = parseInt(document.getElementById('lanc-index').value);
+
+            if (isNaN(valor) || valor <= 0) {
+                alert("Insira um valor numérico válido.");
+                return;
+            }
+
+            let obj = { canal, tipo, valor, desc, ano };
+            if (idx >= 0) {
+                lancamentos[idx] = obj;
+            } else {
+                lancamentos.push(obj);
+            }
+
+            await salvarDados();
+            limparFormulario();
+            processarEAtualizarDRE();
+            renderizarListaLancamentos();
+            alert("Lançamento salvo com sucesso!");
+        }
+
+        function renderizarListaLancamentos() {
+            const container = document.getElementById('lista-lancamentos');
+            container.innerHTML = '';
+            if (lancamentos.length === 0) {
+                container.innerHTML = '<p class="text-slate-400 py-2">Nenhum lançamento cadastrado.</p>';
+                return;
+            }
+
+            lancamentos.slice().reverse().forEach((l, iReal) => {
+                let idx = lancamentos.length - 1 - iReal;
+                let canalObj = canais.find(c => c.id === l.canal);
+                let div = document.createElement('div');
+                div.className = 'flex justify-between items-center bg-white p-2.5 rounded-lg border border-slate-200 gap-2';
+                div.innerHTML = `
+                    <div>
+                        <span class="bg-slate-100 px-1.5 py-0.5 rounded font-bold">Ano: ${l.ano}</span>
+                        <strong>${canalObj?.nome || l.canal}</strong> - <span class="text-slate-500">${l.tipo}</span>: 
+                        <span class="font-semibold text-slate-800">R$ ${l.valor.toFixed(2)}</span>
+                        <div class="text-[10px] text-slate-400">${l.desc}</div>
+                    </div>
+                    <div class="flex space-x-1">
+                        <button onclick="editarLancamento(${idx})" class="p-1.5 bg-blue-50 text-blue-600 rounded"><i class="fa-solid fa-pen"></i></button>
+                        <button onclick="excluirLancamento(${idx})" class="p-1.5 bg-red-50 text-red-600 rounded"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function editarLancamento(idx) {
+            let l = lancamentos[idx];
+            if (!l) return;
+            document.getElementById('lanc-index').value = idx;
+            document.getElementById('form-titulo').innerText = `Editando Lançamento (#${idx})`;
+            document.getElementById('btn-cancelar').classList.remove('hidden');
+            document.getElementById('lanc-ano').value = l.ano;
+            document.getElementById('lanc-canal').value = l.canal;
+            document.getElementById('lanc-tipo').value = l.tipo;
+            document.getElementById('lanc-valor').value = l.valor;
+            document.getElementById('lanc-desc').value = l.desc;
+        }
+
+        async function excluirLancamento(idx) {
+            if (confirm("Deseja excluir este lançamento?")) {
+                lancamentos.splice(idx, 1);
+                await salvarDados();
+                processarEAtualizarDRE();
+                renderizarListaLancamentos();
+            }
+        }
+
+        async function limparTudo() {
+            let senha = prompt("Digite a senha para confirmar a limpeza total:");
+            if (senha === "0") {
+                if (confirm("Tem certeza? Todos os registros serão apagados permanentemente.")) {
+                    lancamentos = [];
+                    await salvarDados();
+                    processarEAtualizarDRE();
+                    renderizarListaLancamentos();
+                    alert("Histórico limpo!");
+                }
+            } else if (senha !== null) {
+                alert("Senha incorreta!");
+            }
+        }
+
+        function exportarExcel() {
+            let tabela = document.getElementById("tabela-dre");
+            let wb = XLSX.utils.table_to_book(tabela, { sheet: "DRE Lynkz" });
+            XLSX.writeFile(wb, `DRE_Lynkz_${canalAtivo}_${anoAtivo}.xlsx`);
+        }
+
+        function exportarPDF() {
+            const elemento = document.getElementById("dre-container-export");
+            const opt = {
+                margin: 10,
+                filename: `DRE_Lynkz_${canalAtivo}_${anoAtivo}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+            };
+            html2pdf().from(elemento).set(opt).save();
+        }
+    </script>
+</body>
+</html>
