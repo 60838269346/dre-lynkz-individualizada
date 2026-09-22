@@ -169,6 +169,7 @@
                                 <option value="despesas_distribuicao">(-) Despesas com Distribuição</option>
                                 <option value="despesas_administrativas">(-) Despesas Administrativas</option>
                                 <option value="despesas_tributarias">(-) Despesas Tributárias</option>
+                                <option value="outras_receitas">(+) Outras Receitas</option>
                                 <option value="aluguel">(-) Aluguel</option>
                                 <option value="pessoal_indireto">(-) Gasto com Pessoal Indireto</option>
                             </select>
@@ -377,6 +378,7 @@
                 despesas_distribuicao: 0,
                 despesas_administrativas: 0,
                 despesas_tributarias: 0,
+                outras_receitas: 0,
                 aluguel: 0,
                 sga: 0,
                 ebitda_operacional: 0,
@@ -391,7 +393,10 @@
             d.receita_liquida = d.receita_bruta - d.devolucoes - d.impostos;
             d.lucro_bruto = d.receita_liquida - d.cmv;
             d.lucro_bruto_ajustado = d.lucro_bruto + d.verbas_comerciais;
-            d.sga = d.comissoes + d.pessoal_direto + d.despesas_comerciais + d.despesas_distribuicao + d.despesas_administrativas + d.despesas_tributarias + d.aluguel;
+            
+            // SG&A agrupa as despesas subtraindo, mas soma "outras_receitas" positivamente
+            d.sga = d.comissoes + d.pessoal_direto + d.despesas_comerciais + d.despesas_distribuicao + d.despesas_administrativas + d.despesas_tributarias + d.aluguel - d.outras_receitas;
+            
             d.ebitda_operacional = d.lucro_bruto_ajustado - d.sga;
             d.ebitda_final = d.ebitda_operacional - d.pessoal_indireto;
 
@@ -402,7 +407,6 @@
             const objC = canais.find(c => c.id === canalAtivo) || canais[0];
             const theadContainer = document.getElementById('tabela-head-container');
             
-            // Limpa o thead mantendo apenas a estrutura base limpa
             theadContainer.innerHTML = '<tr id="dre-thead" class="bg-slate-100/70 text-slate-700 font-semibold border-b border-slate-200"></tr>';
             const thead = document.getElementById('dre-thead');
             
@@ -592,6 +596,7 @@
             fnAdd("    (-) Despesas com Distribuição", d => d.despesas_distribuicao, false, false, true);
             fnAdd("    (-) Despesas Administrativas", d => d.despesas_administrativas, false, false, true);
             fnAdd("    (-) Despesas Tributárias", d => d.despesas_tributarias, false, false, true);
+            fnAdd("    (+) Outras Receitas", d => d.outras_receitas, false, false, false); // Inserido aqui, positivo
             fnAdd("    (-) Aluguel", d => d.aluguel, false, false, true);
             fnAdd("(=) Ebitda operacional", d => d.ebitda_operacional, false, true, false);
             fnAdd("(-) Gasto com Pessoal Indireto", d => d.pessoal_indireto, false, false, true);
