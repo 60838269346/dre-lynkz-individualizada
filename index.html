@@ -640,9 +640,23 @@
             let desc = document.getElementById('lanc-desc').value || "Lançamento DRE";
             let idx = parseInt(document.getElementById('lanc-index').value);
 
-            if (isNaN(valor) || valor <= 0) {
+            if (isNaN(valor)) {
                 alert("Insira um valor numérico válido.");
                 return;
+            }
+
+            // Se for Verbas Comerciais, aceita positivo ou negativo (só não pode ser zero)
+            if (tipo === 'verbas_comerciais') {
+                if (valor === 0) {
+                    alert("Insira um valor diferente de zero para a verba comercial.");
+                    return;
+                }
+            } else {
+                // Para todas as outras contas, continua exigindo valor maior que zero
+                if (valor <= 0) {
+                    alert("Insira um valor numérico válido maior que zero.");
+                    return;
+                }
             }
 
             let obj = { canal, tipo, valor, desc, ano, mes };
